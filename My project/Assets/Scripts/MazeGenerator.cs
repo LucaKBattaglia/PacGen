@@ -3,35 +3,39 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public class MazeGenerator : MonoBehaviour 
+public class MazeGenerator : MonoBehaviour
 {
     [SerializeField] private MazeCell _mazeCellPrefab;
-
     [SerializeField] private int _mazeWidth;
-
     [SerializeField] private int _mazeDepth;
+
+    private GameObject _mazeParent; // Parent GameObject for all MazeCells
     private MazeCell[,] _mazeGrid;
 
-    void Start()
+    IEnumerator Start()
     {
+        // Create a GameObject named "Maze" to act as the parent
+        _mazeParent = new GameObject("Maze");
+
         _mazeGrid = new MazeCell[_mazeWidth, _mazeDepth];
 
         for (int x = 0; x < _mazeWidth; x++)
         {
             for (int z = 0; z < _mazeDepth; z++)
             {
-                _mazeGrid[x, z] = Instantiate(_mazeCellPrefab, new Vector3(x, 0, z), Quaternion.identity);
+                // Instantiate the MazeCell as a child of the _mazeParent GameObject
+                _mazeGrid[x, z] = Instantiate(_mazeCellPrefab, new Vector3(x, 0, z), Quaternion.identity, _mazeParent.transform);
             }
         }
 
-        GenerateMaze(null, _mazeGrid[0, 0]);
+        yield return GenerateMaze(null, _mazeGrid[0, 0]);
     }
 
-    private void GenerateMaze(MazeCell previousCell, MazeCell currentCell)
+    private IEnumerator GenerateMaze(MazeCell previousCell, MazeCell currentCell)
     {
         currentCell.Visit();
         ClearWalls(previousCell, currentCell);
-
+        yield return new WaitForSeconds(0.04f);
         MazeCell nextCell;
 
         do
@@ -40,7 +44,7 @@ public class MazeGenerator : MonoBehaviour
 
             if (nextCell != null)
             {
-                GenerateMaze(currentCell, nextCell);
+                yield return GenerateMaze(currentCell, nextCell);
             }
         } while (nextCell != null);
     }
@@ -61,7 +65,7 @@ public class MazeGenerator : MonoBehaviour
         {
             var cellToRight = _mazeGrid[x + 1, z];
             
-            if (cellToRight.IsVisited == false)
+            if (!cellToRight.IsVisited)
             {
                 yield return cellToRight;
             }
@@ -71,7 +75,7 @@ public class MazeGenerator : MonoBehaviour
         {
             var cellToLeft = _mazeGrid[x - 1, z];
 
-            if (cellToLeft.IsVisited == false)
+            if (!cellToLeft.IsVisited)
             {
                 yield return cellToLeft;
             }
@@ -81,7 +85,7 @@ public class MazeGenerator : MonoBehaviour
         {
             var cellToFront = _mazeGrid[x, z + 1];
 
-            if (cellToFront.IsVisited == false)
+            if (!cellToFront.IsVisited)
             {
                 yield return cellToFront;
             }
@@ -91,7 +95,7 @@ public class MazeGenerator : MonoBehaviour
         {
             var cellToBack = _mazeGrid[x, z - 1];
 
-            if (cellToBack.IsVisited == false)
+            if (!cellToBack.IsVisited)
             {
                 yield return cellToBack;
             }
@@ -133,5 +137,4 @@ public class MazeGenerator : MonoBehaviour
             return;
         }
     }
-
 }
