@@ -466,6 +466,26 @@ PrefabInstance:
       propertyPath: m_Name
       value: MazeGen
       objectReference: {fileID: 0}
+    - target: {fileID: 7000943850902506391, guid: 8a5bc6730bda9a2469c14f6ed65747ee, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7017169822425391630, guid: 8a5bc6730bda9a2469c14f6ed65747ee, type: 3}
+      propertyPath: _mazeDepth
+      value: 13
+      objectReference: {fileID: 0}
+    - target: {fileID: 7017169822425391630, guid: 8a5bc6730bda9a2469c14f6ed65747ee, type: 3}
+      propertyPath: _mazeWidth
+      value: 21
+      objectReference: {fileID: 0}
+    - target: {fileID: 7017169822425391630, guid: 8a5bc6730bda9a2469c14f6ed65747ee, type: 3}
+      propertyPath: _sectionsVertical
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 7017169822425391630, guid: 8a5bc6730bda9a2469c14f6ed65747ee, type: 3}
+      propertyPath: _sectionsHorizontal
+      value: 2
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

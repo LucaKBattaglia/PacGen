@@ -4,41 +4,77 @@ using UnityEngine;
 
 public class MazeCell : MonoBehaviour
 {
-    [SerializeField] private GameObject _leftWall;
-
-    [SerializeField] private GameObject _rightWall;
-
-    [SerializeField] private GameObject _frontWall;
-
-    [SerializeField] private GameObject _backWall;
-
-    [SerializeField] private GameObject _unvisitedBlock;
+    [SerializeField] public GameObject _leftWall;
+    [SerializeField] public GameObject _rightWall;
+    [SerializeField] public GameObject _frontWall;
+    [SerializeField] public GameObject _backWall;
+    [SerializeField] public GameObject _unvisitedBlock;
 
     public bool IsVisited { get; private set; }
 
     public void Visit()
     {
         IsVisited = true;
-        _unvisitedBlock.SetActive(false);
+        if (_unvisitedBlock != null)
+        {
+            _unvisitedBlock.SetActive(false);
+        }
     }
 
     public void ClearLeftWall()
     {
-        _leftWall.SetActive(false);
+        if (_leftWall != null) _leftWall.SetActive(false);
     }
 
     public void ClearRightWall()
     {
-        _rightWall.SetActive(false);
+        if (_rightWall != null) _rightWall.SetActive(false);
     }
 
     public void ClearFrontWall()
     {
-        _frontWall.SetActive(false);
+        if (_frontWall != null) _frontWall.SetActive(false);
     }
 
     public void ClearBackWall()
     {
-        _backWall.SetActive(false);
+        if (_backWall != null) _backWall.SetActive(false);
+    }
+
+    public void SetLeftWall(bool active)
+    {
+        if (_leftWall != null) _leftWall.SetActive(active);
+    }
+
+    public void SetRightWall(bool active)
+    {
+        if (_rightWall != null) _rightWall.SetActive(active);
+    }
+
+    public void SetFrontWall(bool active)
+    {
+        if (_frontWall != null) _frontWall.SetActive(active);
+    }
+
+    public void SetBackWall(bool active)
+    {
+        if (_backWall != null) _backWall.SetActive(active);
+    }
+
+    public void ClearAllWalls()
+    {
+        Visit();
+        ClearLeftWall();
+        ClearRightWall();
+        ClearFrontWall();
+        ClearBackWall();
+    }
+
+    public void SetAllWalls(bool active)
+    {
+        SetLeftWall(active);
+        SetRightWall(active);
+        SetFrontWall(active);
+        SetBackWall(active);
     }
 }
