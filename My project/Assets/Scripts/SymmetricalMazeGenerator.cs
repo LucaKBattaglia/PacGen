@@ -1,3 +1,4 @@
+using Unity.AI.Navigation;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -40,6 +41,7 @@ public class SymmetricalMazeGenerator : MonoBehaviour
 
         // Generate maze sections
         yield return GenerateMazeSections();
+        GetComponent<NavMeshSurface>().BuildNavMesh();
     }
 
     private void DivideMazeIntoSections()
