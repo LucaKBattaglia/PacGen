@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -76,5 +77,25 @@ public class MazeCell : MonoBehaviour
         SetRightWall(active);
         SetFrontWall(active);
         SetBackWall(active);
+    }
+
+    internal bool GetBackWall()
+    {
+        throw new NotImplementedException();
+    }
+
+    internal bool GetFrontWall()
+    {
+        throw new NotImplementedException();
+    }
+
+    internal bool GetLeftWall()
+    {
+        throw new NotImplementedException();
+    }
+
+    internal bool GetRightWall()
+    {
+        throw new NotImplementedException();
     }
 }

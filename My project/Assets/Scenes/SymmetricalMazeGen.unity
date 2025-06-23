@@ -410,11 +410,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1611079750420721005, guid: 8696ecd668672654b8c0da2c6b4c8e9e, type: 3}
       propertyPath: _mazeDepth
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 1611079750420721005, guid: 8696ecd668672654b8c0da2c6b4c8e9e, type: 3}
+      propertyPath: _mazeWidth
       value: 13
       objectReference: {fileID: 0}
     - target: {fileID: 1611079750420721005, guid: 8696ecd668672654b8c0da2c6b4c8e9e, type: 3}
       propertyPath: _sectionsVertical
-      value: 2
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 1611079750420721005, guid: 8696ecd668672654b8c0da2c6b4c8e9e, type: 3}
       propertyPath: _sectionsHorizontal
