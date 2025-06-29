@@ -4,5 +4,14 @@
 EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
-  m_Scenes: []
+  m_Scenes:
+  - enabled: 1
+    path: Assets/Scenes/SymmetricalMazeGen.unity
+    guid: 106153930438d5748b207d79b17d6995
+  - enabled: 1
+    path: Assets/Scenes/StartScene.unity
+    guid: b3d9e3a24f0647b4d8262717ae4c8440
+  - enabled: 1
+    path: Assets/Scenes/Level1.unity
+    guid: c18ed37d090a4c1449504f8b2529623a
   m_configObjects: {}
