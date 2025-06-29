@@ -45,7 +45,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _mazeCellPrefab: {fileID: 399436699931538535, guid: 1a3cde02fcb601348b9c2637c292eae8, type: 3}
-  _mazeWidth: 21
-  _mazeDepth: 13
-  _sectionsHorizontal: 2
+  _mazeWidth: 1
+  _mazeDepth: 1
+  _sectionsHorizontal: 1
   _sectionsVertical: 2

@@ -5,6 +5,7 @@ TagManager:
   serializedVersion: 2
   tags:
   - Wall
+  - Pellet
   layers:
   - Default
   - TransparentFX
@@ -12,8 +13,8 @@ TagManager:
   - Wall
   - Water
   - UI
-  - 
-  - 
+  - Pellet
+  - Player
   - 
   - 
   - 

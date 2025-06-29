@@ -1395,7 +1395,7 @@ MonoBehaviour:
   m_Center: {x: 0, y: 2, z: 0}
   m_LayerMask:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 63
   m_UseGeometry: 0
   m_DefaultArea: 0
   m_GenerateLinks: 0
@@ -1406,7 +1406,7 @@ MonoBehaviour:
   m_OverrideVoxelSize: 0
   m_VoxelSize: 0.06666667
   m_MinRegionArea: 2
-  m_NavMeshData: {fileID: 23800000, guid: 94204df168ec03448a037d68e0f87932, type: 2}
+  m_NavMeshData: {fileID: 23800000, guid: 316c078cf9e28314599089c028c8db81, type: 2}
   m_BuildHeightMesh: 0
 --- !u!1 &1074113043
 GameObject:
@@ -3285,28 +3285,6 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 2913920418703555703, guid: c926bbe7460031e4a96e2517cd9c072f, type: 3}
   m_PrefabInstance: {fileID: 7747020508391521233}
   m_PrefabAsset: {fileID: 0}
---- !u!195 &1964499101
-NavMeshAgent:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1964499094}
-  m_Enabled: 1
-  m_AgentTypeID: 0
-  m_Radius: 0.5
-  m_Speed: 3.5
-  m_Acceleration: 8
-  avoidancePriority: 50
-  m_AngularSpeed: 120
-  m_StoppingDistance: 0
-  m_AutoTraverseOffMeshLink: 1
-  m_AutoBraking: 1
-  m_AutoRepath: 1
-  m_Height: 1
-  m_BaseOffset: 0
-  m_WalkableMask: 4294967295
-  m_ObstacleAvoidanceType: 4
 --- !u!1 &1979227989
 GameObject:
   m_ObjectHideFlags: 0
@@ -3427,8 +3405,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Player: {fileID: 1964499094}
-  cellSize: 1
-  moveSpeed: 2
+  cellSize: 0
+  moveSpeed: 1
 --- !u!195 &1979227995
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -3710,8 +3688,16 @@ PrefabInstance:
       value: PacMan
       objectReference: {fileID: 0}
     - target: {fileID: 2913920418703555703, guid: c926bbe7460031e4a96e2517cd9c072f, type: 3}
+      propertyPath: m_Layer
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 2913920418703555703, guid: c926bbe7460031e4a96e2517cd9c072f, type: 3}
       propertyPath: m_TagString
       value: Player
+      objectReference: {fileID: 0}
+    - target: {fileID: 2938679441986250115, guid: c926bbe7460031e4a96e2517cd9c072f, type: 3}
+      propertyPath: m_IsTrigger
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6287374387426042791, guid: c926bbe7460031e4a96e2517cd9c072f, type: 3}
       propertyPath: m_UseGravity
@@ -3719,6 +3705,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6287374387426042791, guid: c926bbe7460031e4a96e2517cd9c072f, type: 3}
       propertyPath: m_Constraints
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6287374387426042791, guid: c926bbe7460031e4a96e2517cd9c072f, type: 3}
+      propertyPath: m_IsKinematic
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6375708203330675001, guid: c926bbe7460031e4a96e2517cd9c072f, type: 3}
@@ -3739,7 +3729,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6375708203330675001, guid: c926bbe7460031e4a96e2517cd9c072f, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.5
+      value: 0.36
       objectReference: {fileID: 0}
     - target: {fileID: 6375708203330675001, guid: c926bbe7460031e4a96e2517cd9c072f, type: 3}
       propertyPath: m_LocalPosition.z
@@ -3776,10 +3766,7 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 2913920418703555703, guid: c926bbe7460031e4a96e2517cd9c072f, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1964499101}
+    m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: c926bbe7460031e4a96e2517cd9c072f, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
