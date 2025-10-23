@@ -38,6 +38,13 @@ public class SymmetricalMazeGenerator : MonoBehaviour
 
         CreateExternalMazeEntrances();
 
+        // Generate navigation grid for pathfinding
+        PathPlanner pathPlanner = FindObjectOfType<PathPlanner>();
+        if (pathPlanner != null)
+        {
+            pathPlanner.GenerateNavigationGrid(_mazeWidth, _mazeDepth);
+        }
+
         GetComponent<NavMeshSurface>().BuildNavMesh();
     }
 

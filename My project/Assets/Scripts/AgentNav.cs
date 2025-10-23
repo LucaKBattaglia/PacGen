@@ -1,104 +1,348 @@
 using UnityEngine;
-using UnityEngine.AI;
+using System.Collections.Generic;
 
 public class AgentNav : MonoBehaviour
 {
-    // Reference to the Player's GameObject
-    [SerializeField] private GameObject Player;
-
-    // Reference to the NavMeshAgent
-    private NavMeshAgent agent;
-
-    // Size of each grid cell (must match maze and player settings)
-    [SerializeField] private float cellSize = 1f;
-
-    // Fixed movement speed
-    [SerializeField] private float moveSpeed = 4f;
-
-    // Start is called before the first frame update
-    private void Start()
+    [Header("Ghost Settings")]
+    public float moveSpeed = 3f;
+    public float cellSize = 1f;
+    public LayerMask wallLayer = -1;
+    
+    [Header("Target Settings")]
+    public Transform target; // Player transform
+    public float updateInterval = 0.2f; // How often to update direction
+    
+    private Vector3 currentDirection = Vector3.zero;
+    private Vector3 nextDirection = Vector3.zero;
+    private bool isAtIntersection = false;
+    private float lastUpdateTime = 0f;
+    
+    // Movement state
+    private bool isMoving = false;
+    private Vector3 targetPosition;
+    
+    // Pathfinding
+    private List<Vector3> pathToTarget = new List<Vector3>();
+    private int currentPathIndex = 0;
+    private Vector3 lastTargetPosition;
+    
+    void Start()
     {
-        // Get the NavMeshAgent component
-        agent = GetComponent<NavMeshAgent>();
-        if (agent == null)
+        // Find player if not assigned
+        if (target == null)
         {
-            Debug.LogError("NavMeshAgent component not found on " + gameObject.name);
-            return;
-        }
-
-        // Configure NavMeshAgent for consistent speed and sharp turns
-        agent.speed = moveSpeed;
-        agent.acceleration = 1000f; // High acceleration for instant speed changes
-        agent.angularSpeed = 360f; // High angular speed for instant turns
-        agent.stoppingDistance = 0f; // Stop exactly at waypoints
-        agent.autoBraking = true; // Brake immediately
-        agent.radius = 0.4f; // Slightly smaller than cell to avoid wall collisions
-        agent.height = 1f; // Adjust based on your ghost model
-        //agent.obstacleAvoidanceType = ObstacleAvoidanceType.HighQuality; // Better wall avoidance
-    }
-
-    // Update is called once per frame
-    private void Update()
-    {
-        if (agent == null || Player == null)
-            return;
-
-        // Set the agent's destination to the player's position
-        Vector3 target = Player.transform.position;
-        NavMeshHit hit;
-        if (NavMesh.SamplePosition(target, out hit, 1f, NavMesh.AllAreas))
-        {
-            agent.SetDestination(target);
-        }
-        // Align to grid centerline to mimic Pacman movement
-        AlignToGridCenterLine();
-    }
-
-    // Align the agent to the nearest centerline of the maze
-    private void AlignToGridCenterLine()
-    {
-        if (agent.velocity == null || agent.velocity.magnitude <= 0.01f)
-            return; // Skip if not moving
-
-        Vector3 position = agent.transform.position;
-        // Use agent's velocity to determine primary movement direction
-        Vector3 velocity = agent.velocity.normalized;
-
-        // Calculate new position
-        Vector3 newPosition = position;
-        // Determine primary movement direction (X or Y axis)
-        if (Mathf.Abs(velocity.x) > Mathf.Abs(velocity.z))
-        {
-            // Moving primarily along X-axis, align Z to grid
-            newPosition.z = Mathf.Round(position.z / cellSize) * cellSize;
-        }
-        else
-        {
-            // Moving primarily along Z-axis, align X to grid
-            newPosition.x = Mathf.Round(position.x / cellSize) * cellSize;
-        }
-
-        // Validate position to prevent NaN or invalid values
-        if (float.IsNaN(newPosition.x) || float.IsNaN(newPosition.y) || float.IsNaN(newPosition.z) ||
-            float.IsInfinity(newPosition.x) || float.IsInfinity(newPosition.y) || float.IsInfinity(newPosition.z))
-        {
-            Debug.LogWarning("Invalid position calculated in AlignToCenterLine: " + newPosition);
-            return;
-        }
-
-        // Only warp if the position has changed significantly to avoid jitter
-        if (Vector3.Distance(position, newPosition) > 0.01f)
-        {
-            // Use Warp to reposition, but ensure it's on the NavMesh
-            NavMeshHit navHit;
-            if (NavMesh.SamplePosition(newPosition, out navHit, 0.1f, NavMesh.AllAreas))
+            GameObject player = GameObject.FindGameObjectWithTag("Player");
+            if (player != null)
             {
-                agent.Warp(navHit.position);
+                target = player.transform;
+            }
+        }
+        
+        // Set up wall layer
+        if (wallLayer == -1)
+        {
+            wallLayer = LayerMask.GetMask("Wall");
+        }
+        
+        // Start at cell center
+        SnapToCellCenter();
+    }
+    
+    void Update()
+    {
+        if (target == null) return;
+        
+        // Check if we're at an intersection
+        CheckIntersection();
+        
+        // Update path if target moved significantly
+        if (Vector3.Distance(target.position, lastTargetPosition) > cellSize * 2f)
+        {
+            CalculatePathToTarget();
+            lastTargetPosition = target.position;
+        }
+        
+        // Update direction at intervals
+        if (Time.time - lastUpdateTime >= updateInterval)
+        {
+            UpdateDirection();
+            lastUpdateTime = Time.time;
+        }
+        
+        // Handle movement
+        HandleMovement();
+    }
+    
+    void CheckIntersection()
+    {
+        Vector3 pos = transform.position;
+        float tolerance = 0.1f;
+        
+        bool centeredX = Mathf.Abs(pos.x - Mathf.Round(pos.x / cellSize) * cellSize) < tolerance;
+        bool centeredZ = Mathf.Abs(pos.z - Mathf.Round(pos.z / cellSize) * cellSize) < tolerance;
+        
+        isAtIntersection = centeredX && centeredZ;
+    }
+    
+    void CalculatePathToTarget()
+    {
+        pathToTarget.Clear();
+        currentPathIndex = 0;
+        
+        Vector3 startPos = GetCellPosition(transform.position);
+        Vector3 targetPos = GetCellPosition(target.position);
+        
+        // Use BFS pathfinding to find path through maze
+        pathToTarget = FindPath(startPos, targetPos);
+        
+        // If no path found, use simple fallback
+        if (pathToTarget.Count == 0)
+        {
+            pathToTarget.Add(targetPos);
+        }
+    }
+    
+    List<Vector3> FindPath(Vector3 start, Vector3 end)
+    {
+        List<Vector3> path = new List<Vector3>();
+        
+        // Simple BFS pathfinding
+        Queue<Vector3> queue = new Queue<Vector3>();
+        Dictionary<Vector3, Vector3> cameFrom = new Dictionary<Vector3, Vector3>();
+        HashSet<Vector3> visited = new HashSet<Vector3>();
+        
+        queue.Enqueue(start);
+        visited.Add(start);
+        
+        while (queue.Count > 0)
+        {
+            Vector3 current = queue.Dequeue();
+            
+            if (Vector3.Distance(current, end) < cellSize * 0.5f)
+            {
+                // Reconstruct path
+                Vector3 node = end;
+                while (node != start)
+                {
+                    path.Add(node);
+                    if (cameFrom.ContainsKey(node))
+                        node = cameFrom[node];
+                    else
+                        break;
+                }
+                path.Reverse();
+                return path;
+            }
+            
+            // Check all 4 directions
+            Vector3[] directions = { Vector3.forward, Vector3.back, Vector3.left, Vector3.right };
+            
+            foreach (Vector3 dir in directions)
+            {
+                Vector3 next = current + dir * cellSize;
+                
+                if (!visited.Contains(next) && IsValidCell(next))
+                {
+                    visited.Add(next);
+                    cameFrom[next] = current;
+                    queue.Enqueue(next);
+                }
+            }
+        }
+        
+        return path;
+    }
+    
+    bool IsValidCell(Vector3 cellPos)
+    {
+        // Check if this cell position is walkable (no walls)
+        Vector3[] directions = { Vector3.forward, Vector3.back, Vector3.left, Vector3.right };
+        
+        foreach (Vector3 dir in directions)
+        {
+            Ray ray = new Ray(cellPos, dir);
+            if (Physics.Raycast(ray, cellSize * 0.6f, wallLayer))
+            {
+                return false;
+            }
+        }
+        
+        return true;
+    }
+    
+    Vector3 GetCellPosition(Vector3 worldPos)
+    {
+        return new Vector3(
+            Mathf.Round(worldPos.x / cellSize) * cellSize,
+            worldPos.y,
+            Mathf.Round(worldPos.z / cellSize) * cellSize
+        );
+    }
+    
+    void UpdateDirection()
+    {
+        if (!isAtIntersection) return;
+        
+        Vector3 bestDirection = GetBestDirection();
+        
+        if (bestDirection != Vector3.zero)
+        {
+            nextDirection = bestDirection;
+        }
+    }
+    
+    Vector3 GetBestDirection()
+    {
+        if (pathToTarget.Count == 0 || currentPathIndex >= pathToTarget.Count)
+        {
+            // Fallback to direct direction if no path
+            return GetDirectDirection();
+        }
+        
+        Vector3 nextTarget = pathToTarget[currentPathIndex];
+        Vector3 direction = (nextTarget - transform.position).normalized;
+        
+        // Check if we've reached the current path point
+        if (Vector3.Distance(transform.position, nextTarget) < cellSize * 0.5f)
+        {
+            currentPathIndex++;
+            if (currentPathIndex < pathToTarget.Count)
+            {
+                nextTarget = pathToTarget[currentPathIndex];
+                direction = (nextTarget - transform.position).normalized;
+            }
+        }
+        
+        // Convert to grid direction
+        Vector3[] directions = { Vector3.forward, Vector3.back, Vector3.left, Vector3.right };
+        Vector3 bestDir = Vector3.zero;
+        float bestDot = -1f;
+        
+        foreach (Vector3 dir in directions)
+        {
+            if (CanMoveInDirection(dir))
+            {
+                float dot = Vector3.Dot(dir, direction);
+                if (dot > bestDot)
+                {
+                    bestDot = dot;
+                    bestDir = dir;
+                }
+            }
+        }
+        
+        return bestDir;
+    }
+    
+    Vector3 GetDirectDirection()
+    {
+        if (target == null) return Vector3.zero;
+        
+        Vector3[] directions = { Vector3.forward, Vector3.back, Vector3.left, Vector3.right };
+        Vector3 bestDir = Vector3.zero;
+        float shortestDistance = float.MaxValue;
+        
+        foreach (Vector3 dir in directions)
+        {
+            if (CanMoveInDirection(dir))
+            {
+                Vector3 nextPos = transform.position + dir * cellSize;
+                float distance = Vector3.Distance(nextPos, target.position);
+                
+                if (distance < shortestDistance)
+                {
+                    shortestDistance = distance;
+                    bestDir = dir;
+                }
+            }
+        }
+        
+        return bestDir;
+    }
+    
+    bool CanMoveInDirection(Vector3 direction)
+    {
+        Vector3 rayOrigin = transform.position;
+        Ray ray = new Ray(rayOrigin, direction);
+        float rayDistance = cellSize * 0.6f;
+        
+        return !Physics.Raycast(ray, rayDistance, wallLayer);
+    }
+    
+    void HandleMovement()
+    {
+        if (isAtIntersection && nextDirection != Vector3.zero)
+        {
+            if (CanMoveInDirection(nextDirection))
+            {
+                currentDirection = nextDirection;
+                nextDirection = Vector3.zero;
+                isMoving = true;
+                targetPosition = transform.position + currentDirection * cellSize;
+            }
+        }
+        
+        if (isMoving)
+        {
+            MoveTowardsTarget();
+        }
+    }
+    
+    void MoveTowardsTarget()
+    {
+        Vector3 direction = (targetPosition - transform.position).normalized;
+        transform.position += direction * moveSpeed * Time.deltaTime;
+        
+        // Check if we've reached the target position
+        if (Vector3.Distance(transform.position, targetPosition) < 0.1f)
+        {
+            transform.position = targetPosition;
+            isMoving = false;
+        }
+    }
+    
+    void SnapToCellCenter()
+    {
+        Vector3 pos = transform.position;
+        pos.x = Mathf.Round(pos.x / cellSize) * cellSize;
+        pos.z = Mathf.Round(pos.z / cellSize) * cellSize;
+        transform.position = pos;
+    }
+    
+    public void SetTarget(Transform playerTransform)
+    {
+        target = playerTransform;
+    }
+    
+    void OnDrawGizmos()
+    {
+        if (target != null)
+        {
+            // Draw path to target
+            if (pathToTarget.Count > 0)
+            {
+                Gizmos.color = Color.blue;
+                Vector3 prevPos = transform.position;
+                
+                for (int i = 0; i < pathToTarget.Count; i++)
+                {
+                    Gizmos.DrawLine(prevPos, pathToTarget[i]);
+                    Gizmos.DrawWireSphere(pathToTarget[i], 0.1f);
+                    prevPos = pathToTarget[i];
+                }
             }
             else
             {
-                Debug.LogWarning("Could not warp to position, not on NavMesh: " + newPosition);
+                // Fallback to direct line if no path
+                Gizmos.color = Color.red;
+                Gizmos.DrawLine(transform.position, target.position);
             }
+        }
+        
+        if (isAtIntersection)
+        {
+            Gizmos.color = Color.cyan;
+            Gizmos.DrawWireSphere(transform.position, 0.2f);
         }
     }
 }

@@ -1,17 +1,15 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-public class GhostAI : MonoBehaviour
+public class GridGhostAI : MonoBehaviour
 {
     [Header("Ghost Settings")]
     public float moveSpeed = 3f;
     public float cellSize = 1f;
-    public LayerMask wallLayer = -1;
     
     [Header("Target Settings")]
     public Transform target; // Player transform
-    public float updateInterval = 0.5f; // How often to update direction
-    public float pathUpdateInterval = 1f; // How often to recalculate path
+    public float updateInterval = 0.3f; // How often to update direction
     
     private Vector3 currentDirection = Vector3.zero;
     private Vector3 nextDirection = Vector3.zero;
@@ -23,10 +21,12 @@ public class GhostAI : MonoBehaviour
     private Vector3 targetPosition;
     
     // Pathfinding
-    private List<Vector3> pathToTarget = new List<Vector3>();
+    private List<Vector3> currentPath = new List<Vector3>();
     private int currentPathIndex = 0;
+    private PathPlanner pathPlanner;
     private Vector3 lastTargetPosition;
     private float lastPathUpdateTime = 0f;
+    private float pathUpdateInterval = 1f;
     
     void Start()
     {
@@ -40,10 +40,11 @@ public class GhostAI : MonoBehaviour
             }
         }
         
-        // Set up wall layer
-        if (wallLayer == -1)
+        // Find path planner
+        pathPlanner = FindObjectOfType<PathPlanner>();
+        if (pathPlanner == null)
         {
-            wallLayer = LayerMask.GetMask("Wall");
+            Debug.LogError("PathPlanner not found! Please add a PathPlanner to your scene.");
         }
         
         // Start at cell center
@@ -52,16 +53,16 @@ public class GhostAI : MonoBehaviour
     
     void Update()
     {
-        if (target == null) return;
+        if (target == null || pathPlanner == null) return;
         
         // Check if we're at an intersection
         CheckIntersection();
         
         // Update path if target moved significantly or enough time has passed
         if (Time.time - lastPathUpdateTime >= pathUpdateInterval || 
-            Vector3.Distance(target.position, lastTargetPosition) > cellSize * 3f)
+            Vector3.Distance(target.position, lastTargetPosition) > cellSize * 2f)
         {
-            CalculatePathToTarget();
+            UpdatePath();
             lastTargetPosition = target.position;
             lastPathUpdateTime = Time.time;
         }
@@ -88,105 +89,21 @@ public class GhostAI : MonoBehaviour
         isAtIntersection = centeredX && centeredZ;
     }
     
-    void CalculatePathToTarget()
+    void UpdatePath()
     {
-        pathToTarget.Clear();
+        if (pathPlanner == null) return;
+        
+        currentPath = pathPlanner.FindPath(transform.position, target.position);
         currentPathIndex = 0;
         
-        Vector3 startPos = GetCellPosition(transform.position);
-        Vector3 targetPos = GetCellPosition(target.position);
-        
-        // Use A* pathfinding to find path through maze
-        pathToTarget = FindPath(startPos, targetPos);
-        
-        // If no path found, use simple fallback
-        if (pathToTarget.Count == 0)
+        if (currentPath.Count > 0)
         {
-            pathToTarget.Add(targetPos);
+            Debug.Log($"New path found with {currentPath.Count} waypoints");
         }
-    }
-    
-    List<Vector3> FindPath(Vector3 start, Vector3 end)
-    {
-        List<Vector3> path = new List<Vector3>();
-        
-        // Performance limits
-        int maxIterations = 1000; // Limit pathfinding iterations
-        int iterations = 0;
-        
-        // Simple BFS pathfinding with performance limits
-        Queue<Vector3> queue = new Queue<Vector3>();
-        Dictionary<Vector3, Vector3> cameFrom = new Dictionary<Vector3, Vector3>();
-        HashSet<Vector3> visited = new HashSet<Vector3>();
-        
-        queue.Enqueue(start);
-        visited.Add(start);
-        
-        while (queue.Count > 0 && iterations < maxIterations)
+        else
         {
-            iterations++;
-            Vector3 current = queue.Dequeue();
-            
-            if (Vector3.Distance(current, end) < cellSize * 0.5f)
-            {
-                // Reconstruct path
-                Vector3 node = end;
-                while (node != start)
-                {
-                    path.Add(node);
-                    if (cameFrom.ContainsKey(node))
-                        node = cameFrom[node];
-                    else
-                        break;
-                }
-                path.Reverse();
-                return path;
-            }
-            
-            // Check all 4 directions
-            Vector3[] directions = { Vector3.forward, Vector3.back, Vector3.left, Vector3.right };
-            
-            foreach (Vector3 dir in directions)
-            {
-                Vector3 next = current + dir * cellSize;
-                
-                if (!visited.Contains(next) && IsValidCell(next))
-                {
-                    visited.Add(next);
-                    cameFrom[next] = current;
-                    queue.Enqueue(next);
-                }
-            }
+            Debug.Log("No path found, will use direct movement");
         }
-        
-        // If pathfinding failed, return empty path (will use fallback)
-        return path;
-    }
-    
-    bool IsValidCell(Vector3 cellPos)
-    {
-        // Check if this cell position is walkable (no walls)
-        Vector3[] directions = { Vector3.forward, Vector3.back, Vector3.left, Vector3.right };
-        
-        foreach (Vector3 dir in directions)
-        {
-            Ray ray = new Ray(cellPos, dir);
-            if (Physics.Raycast(ray, cellSize * 0.6f, wallLayer))
-            {
-                return false;
-            }
-        }
-        
-        return true;
-    }
-    
-    Vector3 GetCellPosition(Vector3 worldPos)
-    {
-        return new Vector3(
-            Mathf.Round(worldPos.x / cellSize) * cellSize,
-            worldPos.y,
-            Mathf.Round(worldPos.z / cellSize) * cellSize
-        );
     }
     
     void UpdateDirection()
@@ -203,45 +120,49 @@ public class GhostAI : MonoBehaviour
     
     Vector3 GetBestDirection()
     {
-        if (pathToTarget.Count == 0 || currentPathIndex >= pathToTarget.Count)
+        // If we have a valid path, follow it
+        if (currentPath.Count > 0 && currentPathIndex < currentPath.Count)
         {
-            // Fallback to direct direction if no path
-            return GetDirectDirection();
-        }
-        
-        Vector3 nextTarget = pathToTarget[currentPathIndex];
-        Vector3 direction = (nextTarget - transform.position).normalized;
-        
-        // Check if we've reached the current path point
-        if (Vector3.Distance(transform.position, nextTarget) < cellSize * 0.5f)
-        {
-            currentPathIndex++;
-            if (currentPathIndex < pathToTarget.Count)
+            Vector3 nextWaypoint = currentPath[currentPathIndex];
+            Vector3 direction = (nextWaypoint - transform.position).normalized;
+            
+            // Check if we've reached the current waypoint
+            if (Vector3.Distance(transform.position, nextWaypoint) < cellSize * 0.5f)
             {
-                nextTarget = pathToTarget[currentPathIndex];
-                direction = (nextTarget - transform.position).normalized;
-            }
-        }
-        
-        // Convert to grid direction
-        Vector3[] directions = { Vector3.forward, Vector3.back, Vector3.left, Vector3.right };
-        Vector3 bestDir = Vector3.zero;
-        float bestDot = -1f;
-        
-        foreach (Vector3 dir in directions)
-        {
-            if (CanMoveInDirection(dir))
-            {
-                float dot = Vector3.Dot(dir, direction);
-                if (dot > bestDot)
+                currentPathIndex++;
+                if (currentPathIndex < currentPath.Count)
                 {
-                    bestDot = dot;
-                    bestDir = dir;
+                    nextWaypoint = currentPath[currentPathIndex];
+                    direction = (nextWaypoint - transform.position).normalized;
                 }
             }
+            
+            // Convert to grid direction
+            Vector3[] directions = { Vector3.forward, Vector3.back, Vector3.left, Vector3.right };
+            Vector3 bestDir = Vector3.zero;
+            float bestDot = -1f;
+            
+            foreach (Vector3 dir in directions)
+            {
+                if (CanMoveInDirection(dir))
+                {
+                    float dot = Vector3.Dot(dir, direction);
+                    if (dot > bestDot)
+                    {
+                        bestDot = dot;
+                        bestDir = dir;
+                    }
+                }
+            }
+            
+            if (bestDir != Vector3.zero)
+            {
+                return bestDir;
+            }
         }
         
-        return bestDir;
+        // Fallback to direct direction if no path or path failed
+        return GetDirectDirection();
     }
     
     Vector3 GetDirectDirection()
@@ -276,7 +197,7 @@ public class GhostAI : MonoBehaviour
         Ray ray = new Ray(rayOrigin, direction);
         float rayDistance = cellSize * 0.6f;
         
-        return !Physics.Raycast(ray, rayDistance, wallLayer);
+        return !Physics.Raycast(ray, rayDistance, pathPlanner.wallLayer);
     }
     
     void HandleMovement()
@@ -328,17 +249,17 @@ public class GhostAI : MonoBehaviour
     {
         if (target != null)
         {
-            // Draw path to target
-            if (pathToTarget.Count > 0)
+            // Draw current path
+            if (currentPath.Count > 0)
             {
                 Gizmos.color = Color.green;
                 Vector3 prevPos = transform.position;
                 
-                for (int i = 0; i < pathToTarget.Count; i++)
+                for (int i = currentPathIndex; i < currentPath.Count; i++)
                 {
-                    Gizmos.DrawLine(prevPos, pathToTarget[i]);
-                    Gizmos.DrawWireSphere(pathToTarget[i], 0.1f);
-                    prevPos = pathToTarget[i];
+                    Gizmos.DrawLine(prevPos, currentPath[i]);
+                    Gizmos.DrawWireSphere(currentPath[i], 0.1f);
+                    prevPos = currentPath[i];
                 }
             }
             else

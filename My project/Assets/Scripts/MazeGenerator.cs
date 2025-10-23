@@ -29,6 +29,13 @@ public class MazeGenerator : MonoBehaviour
         }
 
         yield return GenerateMaze(null, _mazeGrid[0, 0]);
+        
+        // Generate navigation grid for pathfinding
+        PathPlanner pathPlanner = FindObjectOfType<PathPlanner>();
+        if (pathPlanner != null)
+        {
+            pathPlanner.GenerateNavigationGrid(_mazeWidth, _mazeDepth);
+        }
     }
 
     private IEnumerator GenerateMaze(MazeCell previousCell, MazeCell currentCell)

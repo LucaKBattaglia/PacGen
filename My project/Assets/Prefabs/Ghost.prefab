@@ -13,10 +13,10 @@ GameObject:
   - component: {fileID: 6336371327612008675}
   - component: {fileID: 1472048928437612221}
   - component: {fileID: 5664552422659794498}
-  - component: {fileID: -8681287694172233649}
+  - component: {fileID: -4701313756895801286}
   m_Layer: 0
   m_Name: Ghost
-  m_TagString: Untagged
+  m_TagString: Ghost
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -129,12 +129,12 @@ Rigidbody:
     m_Bits: 0
   m_ImplicitCom: 1
   m_ImplicitTensor: 1
-  m_UseGravity: 1
+  m_UseGravity: 0
   m_IsKinematic: 0
   m_Interpolate: 0
-  m_Constraints: 0
+  m_Constraints: 4
   m_CollisionDetection: 0
---- !u!114 &-8681287694172233649
+--- !u!114 &-4701313756895801286
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -143,11 +143,13 @@ MonoBehaviour:
   m_GameObject: {fileID: 4005251080428415371}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: afb7f83313e99914786bb41128f65d88, type: 3}
+  m_Script: {fileID: 11500000, guid: 4f427c0e5f7dcd8408c459453f932d80, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  moveSpeed: 2
+  moveSpeed: 3
   cellSize: 1
   wallLayer:
     serializedVersion: 2
-    m_Bits: 8
+    m_Bits: 0
+  target: {fileID: 0}
+  updateInterval: 0.3
